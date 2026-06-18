@@ -77,6 +77,8 @@ def hisobot_pdf(hisobot):
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle('title', fontSize=10, alignment=1, spaceAfter=3)
     h_style = ParagraphStyle('hdr', fontSize=5.5, alignment=1, leading=7)
+    # Mahsulot nomi — chapga tekislangan, o'raladigan (wrap) uslub
+    name_style = ParagraphStyle('name', fontSize=6.5, alignment=0, leading=8)
 
     def P(txt):
         return Paragraph(txt, h_style)
@@ -133,13 +135,16 @@ def hisobot_pdf(hisobot):
     data = [row0, row1, row2]
     for q in qatorlar_qs:
         m = q.mahsulot
-        row = [str(m.tartib_raqam), m.nomi]
+        # Mahsulot nomi — Paragraph (uzun nomlar katak ichida o'raladi)
+        row = [str(m.tartib_raqam), Paragraph(m.nomi, name_style)]
         for field, _ in USTUNLAR:
             val = getattr(q, field)
             row.append(_fmt_sum(val) if field in SUM_FIELDS else _fmt(val))
         data.append(row)
 
-    col_widths = [7 * mm, 34 * mm] + [15.5 * mm] * 16
+    # Landshaft A4 = 297mm, chekkalar 8+8 = 16mm -> foydali ~281mm
+    # 6 + 42 + 16*14.55 = 280.8mm (sahifaga sig'adi)
+    col_widths = [6 * mm, 42 * mm] + [14.55 * mm] * 16
 
     table = Table(data, colWidths=col_widths, repeatRows=3)
     HDR_BG  = colors.HexColor('#1a5276')
@@ -158,12 +163,17 @@ def hisobot_pdf(hisobot):
          [colors.white, colors.HexColor('#eaf4fb')]),
         # fonts & align
         ('FONTSIZE', (0, 0), (-1, 2), 5.5),
-        ('FONTSIZE', (0, 3), (-1, -1), 7),
+        ('FONTSIZE', (0, 3), (-1, -1), 6.2),
         ('ALIGN',    (0, 0), (-1, -1), 'CENTER'),
+        # Mahsulot nomi ustuni — chapga; raqamlar — o'ngga
+        ('ALIGN',    (1, 3), (1, -1), 'LEFT'),
+        ('ALIGN',    (2, 3), (-1, -1), 'RIGHT'),
         ('VALIGN',   (0, 0), (-1, -1), 'MIDDLE'),
         ('GRID',     (0, 0), (-1, -1), 0.3, colors.grey),
         ('TOPPADDING',    (0, 0), (-1, -1), 2),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 2),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 2),
         # SPANS — header
         ('SPAN', (0, 0), (0, 2)),   # T/p
         ('SPAN', (1, 0), (1, 2)),   # Mahsulot turi
