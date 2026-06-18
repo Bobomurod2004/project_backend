@@ -68,7 +68,12 @@ def korxona_yaratish_taklifi(args: dict) -> dict:
     # HIMOYA: shu INN bilan korxona allaqachon bormi?
     # Bir xil INN bilan create MUMKIN EMAS (INN unikal). Demak bu
     # aslida tahrirlash — avtomatik update taklifiga aylantiramiz.
-    mavjud = _korxona_topish({"inn": inn})
+    try:
+        mavjud = _korxona_topish({"inn": inn})
+    except Exception:
+        # O'qish tekshiruvi vaqtincha ishlamasa ham taklifni yo'qotmaymiz.
+        # Yakuniy unikal INN validatsiyasini Django create endpoint bajaradi.
+        mavjud = None
     if mavjud:
         if extra:
             return {

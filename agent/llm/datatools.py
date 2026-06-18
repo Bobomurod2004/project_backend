@@ -12,7 +12,7 @@ _TIMEOUT = 10
 
 def _get(path: str, params: dict | None = None) -> dict:
     """Django API'ga GET so'rovi. DRF pagination'ni hisobga oladi."""
-    url = f"{DJANGO_API}{path}"
+    url = f"{DJANGO_API.rstrip('/')}/{path.lstrip('/')}"
     resp = httpx.get(url, params=params or {}, timeout=_TIMEOUT)
     resp.raise_for_status()
     return resp.json()

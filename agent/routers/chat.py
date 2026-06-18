@@ -1,8 +1,14 @@
 import json
+import re
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from llm.client import chat as llm_chat
+from llm.datatools import (
+    hisobotlar_royxati,
+    korxonalar_royxati,
+    platforma_statistikasi,
+)
 from llm.tools import resolve_page
 from llm.navparse import extract_navigation, detect_user_navigation
 
@@ -52,6 +58,10 @@ def chat(req: ChatRequest):
         user_msgs = [m for m in req.messages if m.role == "user"]
         if user_msgs:
             last = user_msgs[-1].content
+            data_reply = _direct_data_reply(req.messages)
+            if data_reply:
+                return ChatResponse(reply=data_reply, history=[], navigate=None)
+
             page = detect_user_navigation(last)
             # qisqa buyruq bo'lsa (qo'shimcha savol yo'q) — to'g'ridan javob
             if page and len(last.split()) <= 6:
@@ -146,6 +156,68 @@ def _extract_proposal(tool_calls: list[dict]) -> Optional[PendingAction]:
                 target_id=proposal.get("target_id"),
                 current=proposal.get("current"),
             )
+    return None
+
+
+_DATA_INTENT_RE = re.compile(
+    r"(nechta|soni|qancha|sanab|hisobla|ro['‘’]?yxat|mavjud|\bbor\b)",
+    re.IGNORECASE,
+)
+
+
+def _direct_data_reply(messages: list[Message]) -> Optional[str]:
+    """Aniq ma'lumot savollarini LLMga yubormasdan javoblaydi."""
+    if not messages:
+        return None
+
+    text = messages[-1].content or ""
+    if not _DATA_INTENT_RE.search(text):
+        return None
+
+    subject = _infer_data_subject(messages)
+    if subject is None:
+        return None
+
+    try:
+        if subject == "korxonalar":
+            data = korxonalar_royxati({})
+            names = [k.get("nomi") for k in data.get("korxonalar", []) if k.get("nomi")]
+            extra = f"\n\nKorxonalar: {', '.join(names)}" if names else ""
+            return f"Tizimda {data['soni']} ta korxona bor.{extra}"
+
+        if subject == "hisobotlar":
+            data = hisobotlar_royxati({})
+            return f"Tizimda {data['soni']} ta hisobot bor."
+
+        data = platforma_statistikasi({})
+        return (
+            f"Umumiy statistika:\n"
+            f"- Korxonalar: {data['korxonalar_soni']} ta\n"
+            f"- Hisobotlar: {data['hisobotlar_soni']} ta"
+        )
+    except Exception as exc:
+        return (
+            "Django API'dan ma'lumot olishda xatolik bo'ldi: "
+            f"{exc}. Serverda DJANGO_API va ALLOWED_HOSTS sozlamalarini tekshiring."
+        )
+
+
+def _infer_data_subject(messages: list[Message]) -> Optional[str]:
+    current = (messages[-1].content or "").lower()
+    if "korxona" in current:
+        return "korxonalar"
+    if "hisob" in current or "report" in current:
+        return "hisobotlar"
+    if "statistika" in current or "umumiy" in current:
+        return "platforma"
+
+    # "yo'q, menga soni bergin" kabi xabarlarda mavzuni yaqin tarixdan olamiz.
+    for msg in reversed(messages[:-1][-6:]):
+        content = (msg.content or "").lower()
+        if "korxona" in content:
+            return "korxonalar"
+        if "hisob" in content or "report" in content:
+            return "hisobotlar"
     return None
 
 

@@ -34,6 +34,9 @@ DEBUG = env_bool("DEBUG", False)
 
 # Vergul bilan ajratilgan: "example.com,api.example.com"
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
+if "web" not in ALLOWED_HOSTS:
+    # Docker compose ichida agent Django'ga http://web:8000 orqali ulanadi.
+    ALLOWED_HOSTS.append("web")
 
 
 # ── Ilovalar ──────────────────────────────────────────────────────────────────

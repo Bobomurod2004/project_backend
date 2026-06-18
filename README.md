@@ -51,7 +51,7 @@ location /ai/     { proxy_pass http://127.0.0.1:8002; }
 |-------|--------|
 | `SECRET_KEY` | Django maxfiy kaliti (uzun tasodifiy satr) |
 | `DEBUG` | `False` (production) |
-| `ALLOWED_HOSTS` | `api.example.com,localhost` |
+| `ALLOWED_HOSTS` | `api.example.com,localhost,127.0.0.1,web` |
 | `CORS_ALLOWED_ORIGINS` | Frontend domenlari |
 | `POSTGRES_DB/USER/PASSWORD` | DB sozlamalari (bo'sh = SQLite) |
 
