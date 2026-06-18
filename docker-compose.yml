@@ -29,8 +29,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # Faqat localhost — internetga ochiq emas, faqat nginx kira oladi
     ports:
-      - "8001:8000"
+      - "127.0.0.1:8001:8000"
     restart: unless-stopped
 
   agent:
@@ -40,8 +41,9 @@ services:
       DJANGO_API: http://web:8000/api
     depends_on:
       - web
+    # Faqat localhost — internetga ochiq emas, faqat nginx kira oladi
     ports:
-      - "8002:8000"
+      - "127.0.0.1:8002:8000"
     restart: unless-stopped
 
 volumes:
