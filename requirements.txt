@@ -1,0 +1,21 @@
+# ── Django + DRF ──
+Django==6.0.6
+djangorestframework==3.17.1
+django-cors-headers==4.9.0
+
+# ── Hisobot eksporti ──
+openpyxl==3.1.5
+reportlab==4.5.1
+pillow==12.2.0
+
+# ── Production ──
+gunicorn==23.0.0
+whitenoise==6.8.2
+python-dotenv==1.0.1
+psycopg2-binary==2.9.10
+
+# ── Bog'liqliklar ──
+asgiref==3.11.1
+sqlparse==0.5.5
+et_xmlfile==2.0.0
+charset-normalizer==3.4.7

@@ -1,0 +1,145 @@
+[
+  {
+    "model": "hisobotlar.mahsulotturi",
+    "pk": 1,
+    "fields": {
+      "tartib_raqam": 1,
+      "nomi": "Aroq",
+      "qabul_mavjud": false,
+      "sarflangan_mavjud": false,
+      "ishlab_chiqarish_mavjud": true,
+      "realizatsiya_mavjud": true,
+      "eksport_mavjud": true
+    }
+  },
+  {
+    "model": "hisobotlar.mahsulotturi",
+    "pk": 2,
+    "fields": {
+      "tartib_raqam": 2,
+      "nomi": "Likyur aroq",
+      "qabul_mavjud": false,
+      "sarflangan_mavjud": false,
+      "ishlab_chiqarish_mavjud": true,
+      "realizatsiya_mavjud": true,
+      "eksport_mavjud": true
+    }
+  },
+  {
+    "model": "hisobotlar.mahsulotturi",
+    "pk": 3,
+    "fields": {
+      "tartib_raqam": 3,
+      "nomi": "Konyak",
+      "qabul_mavjud": false,
+      "sarflangan_mavjud": false,
+      "ishlab_chiqarish_mavjud": true,
+      "realizatsiya_mavjud": true,
+      "eksport_mavjud": true
+    }
+  },
+  {
+    "model": "hisobotlar.mahsulotturi",
+    "pk": 4,
+    "fields": {
+      "tartib_raqam": 4,
+      "nomi": "Tabiiy vino",
+      "qabul_mavjud": false,
+      "sarflangan_mavjud": false,
+      "ishlab_chiqarish_mavjud": true,
+      "realizatsiya_mavjud": true,
+      "eksport_mavjud": true
+    }
+  },
+  {
+    "model": "hisobotlar.mahsulotturi",
+    "pk": 5,
+    "fields": {
+      "tartib_raqam": 5,
+      "nomi": "Kuvvatlantirilgan vino",
+      "qabul_mavjud": false,
+      "sarflangan_mavjud": false,
+      "ishlab_chiqarish_mavjud": true,
+      "realizatsiya_mavjud": true,
+      "eksport_mavjud": true
+    }
+  },
+  {
+    "model": "hisobotlar.mahsulotturi",
+    "pk": 6,
+    "fields": {
+      "tartib_raqam": 6,
+      "nomi": "Shampanskiy vinosi",
+      "qabul_mavjud": false,
+      "sarflangan_mavjud": false,
+      "ishlab_chiqarish_mavjud": true,
+      "realizatsiya_mavjud": true,
+      "eksport_mavjud": true
+    }
+  },
+  {
+    "model": "hisobotlar.mahsulotturi",
+    "pk": 7,
+    "fields": {
+      "tartib_raqam": 7,
+      "nomi": "Spirt",
+      "qabul_mavjud": true,
+      "sarflangan_mavjud": true,
+      "ishlab_chiqarish_mavjud": false,
+      "realizatsiya_mavjud": false,
+      "eksport_mavjud": false
+    }
+  },
+  {
+    "model": "hisobotlar.mahsulotturi",
+    "pk": 8,
+    "fields": {
+      "tartib_raqam": 8,
+      "nomi": "Distillat",
+      "qabul_mavjud": true,
+      "sarflangan_mavjud": true,
+      "ishlab_chiqarish_mavjud": true,
+      "realizatsiya_mavjud": true,
+      "eksport_mavjud": true
+    }
+  },
+  {
+    "model": "hisobotlar.mahsulotturi",
+    "pk": 9,
+    "fields": {
+      "tartib_raqam": 9,
+      "nomi": "Vinomaterial",
+      "qabul_mavjud": true,
+      "sarflangan_mavjud": true,
+      "ishlab_chiqarish_mavjud": true,
+      "realizatsiya_mavjud": true,
+      "eksport_mavjud": true
+    }
+  },
+  {
+    "model": "hisobotlar.mahsulotturi",
+    "pk": 10,
+    "fields": {
+      "tartib_raqam": 10,
+      "nomi": "Yarim tayyor mahsulot (kadoqlanmagan, quloq va boshqalar)",
+      "qabul_mavjud": true,
+      "sarflangan_mavjud": true,
+      "ishlab_chiqarish_mavjud": true,
+      "realizatsiya_mavjud": true,
+      "eksport_mavjud": true
+    }
+  },
+  {
+    "model": "hisobotlar.mahsulotturi",
+    "pk": 11,
+    "fields": {
+      "tartib_raqam": 11,
+      "nomi": "Boshqalar",
+      "qabul_mavjud": true,
+      "sarflangan_mavjud": true,
+      "ishlab_chiqarish_mavjud": true,
+      "realizatsiya_mavjud": true,
+      "eksport_mavjud": true
+    }
+  }
+]

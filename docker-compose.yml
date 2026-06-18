@@ -1,0 +1,48 @@
+# Backend stack: PostgreSQL + Django (gunicorn) + AI Agent (uvicorn)
+# Nginx server tomonidan alohida qo'yiladi (reverse proxy).
+#
+# Portlar:
+#   web   (Django) -> host 8001
+#   agent (FastAPI) -> host 8002
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  web:
+    build: .
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8001:8000"
+    restart: unless-stopped
+
+  agent:
+    build: ./agent
+    env_file: ./agent/.env
+    environment:
+      DJANGO_API: http://web:8000/api
+    depends_on:
+      - web
+    ports:
+      - "8002:8000"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
