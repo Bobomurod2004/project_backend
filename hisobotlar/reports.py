@@ -51,6 +51,160 @@ USTUNLAR = [
 
 SUM_FIELDS = {'realizatsiya_summasi', 'eksport_summasi'}
 
+# Svod (oy-ma-oy umumiy ko'rinish) ustunlari — qisqa, tushunarli sarlavhalar
+SVOD_USTUNLAR = [
+    ('yil_boshi_hajmi',      'Yil boshi haj.'),
+    ('yil_boshi_absolyut',   'Yil boshi abs.'),
+    ('qabul_hajmi',          'Qabul'),
+    ('sarflangan_hajmi',     'Sarflangan'),
+    ('ishlab_hajmi',         'Ishlab haj.'),
+    ('ishlab_absolyut',      'Ishlab abs.'),
+    ('realizatsiya_hajmi',   'Realiz. haj.'),
+    ('realizatsiya_absolyut', 'Realiz. abs.'),
+    ('realizatsiya_summasi', 'Realiz. sum.'),
+    ('eksport_hajmi',        'Eksport haj.'),
+    ('eksport_absolyut',     'Eksport abs.'),
+    ('eksport_summasi',      'Eksport sum.'),
+    ('yoqotish_hajmi',       "Yo'qotish"),
+    ('oz_ehtiyoj_hajmi',     "O'z ehtiyoji"),
+    ('oy_oxiri_hajmi',       'Oy oxiri haj.'),
+    ('oy_oxiri_absolyut',    'Oy oxiri abs.'),
+]
+
+# Qoldiq ustunlari — yillik jamida yig'indi emas, chegaraviy oy qiymati olinadi
+BALANS_BOSHI = {'yil_boshi_hajmi', 'yil_boshi_absolyut'}
+BALANS_OXIRI = {'oy_oxiri_hajmi', 'oy_oxiri_absolyut'}
+
+
+def oylik_svod_data(korxona, yil):
+    """
+    Korxonaning bir yildagi oylik hisobotlari bo'yicha oy-ma-oy svod.
+
+    Har bir oy uchun barcha mahsulotlar yig'indisi olinadi; oxirida yillik
+    jami. Qoldiq (yil boshi / oy oxiri) ustunlari yig'indi emas — chegaraviy
+    oyning qiymati ishlatiladi.
+
+    Qaytadi: {'yil', 'oylar': [{'oy', 'oy_nomi', <field>: float|None}, ...],
+              'jami': {<field>: float|None}}
+    """
+    from django.db.models import Sum
+    from .models import OylikHisobot
+
+    fields = [key for key, _ in SVOD_USTUNLAR]
+    hisobotlar = (
+        OylikHisobot.objects
+        .filter(korxona=korxona, yil=yil)
+        .order_by('oy')
+    )
+
+    oylar = []
+    for h in hisobotlar:
+        agg = h.qatorlar.aggregate(**{f: Sum(f) for f in fields})
+        row = {'oy': h.oy, 'oy_nomi': h.get_oy_display()}
+        for f in fields:
+            v = agg.get(f)
+            row[f] = float(v) if v is not None else None
+        oylar.append(row)
+
+    jami = {}
+    for f in fields:
+        if f in BALANS_BOSHI:
+            jami[f] = oylar[0][f] if oylar else None
+        elif f in BALANS_OXIRI:
+            jami[f] = oylar[-1][f] if oylar else None
+        else:
+            vals = [o[f] for o in oylar if o[f] is not None]
+            jami[f] = sum(vals) if vals else None
+
+    return {'yil': yil, 'oylar': oylar, 'jami': jami}
+
+
+def _svod_rows_jami(rows):
+    jami = {}
+    for f, _ in SVOD_USTUNLAR:
+        vals = [row.get(f) for row in rows if row.get(f) is not None]
+        jami[f] = sum(vals) if vals else None
+    return jami
+
+
+def svodlar_data(yil, korxona_id=None, oy=None):
+    """
+    Bir yil bo'yicha svodni oylar kesimida, har oy ichida korxonalar bilan
+    qaytaradi. Frontenddagi alohida Svod sahifasi shu formatdan foydalanadi.
+    """
+    from .models import OylikHisobot
+
+    hisobotlar = OylikHisobot.objects.select_related('korxona').filter(yil=yil)
+    if korxona_id:
+        hisobotlar = hisobotlar.filter(korxona_id=korxona_id)
+
+    tanlangan_hisobotlar = hisobotlar
+    if oy:
+        tanlangan_hisobotlar = tanlangan_hisobotlar.filter(oy=oy)
+
+    hisobot_idlar = {
+        (h.korxona_id, h.oy): h.id
+        for h in hisobotlar
+    }
+
+    korxona_hisobotlari = {}
+    for h in tanlangan_hisobotlar.order_by('korxona__nomi', 'oy'):
+        if h.korxona_id not in korxona_hisobotlari:
+            korxona_hisobotlari[h.korxona_id] = h
+
+    oylar_map = {}
+    korxonalar = []
+
+    for h in korxona_hisobotlari.values():
+        korxona = h.korxona
+        svod = oylik_svod_data(korxona, yil)
+        korxona_oylari = [
+            row for row in svod['oylar']
+            if not oy or row['oy'] == oy
+        ]
+        if not korxona_oylari:
+            continue
+
+        korxonalar.append({
+            'korxona': korxona.id,
+            'korxona_nomi': korxona.nomi,
+            'inn': korxona.inn,
+            'hisobot_id': h.id,
+            'jami': svod['jami'],
+        })
+
+        for row in korxona_oylari:
+            oy_key = row['oy']
+            if oy_key not in oylar_map:
+                oylar_map[oy_key] = {
+                    'oy': oy_key,
+                    'oy_nomi': row['oy_nomi'],
+                    'korxonalar': [],
+                }
+
+            oylar_map[oy_key]['korxonalar'].append({
+                'korxona': korxona.id,
+                'korxona_nomi': korxona.nomi,
+                'inn': korxona.inn,
+                'hisobot_id': hisobot_idlar.get((korxona.id, oy_key)),
+                **{f: row.get(f) for f, _ in SVOD_USTUNLAR},
+            })
+
+    oylar = []
+    for item in sorted(oylar_map.values(), key=lambda x: x['oy']):
+        item['korxonalar'].sort(key=lambda row: row['korxona_nomi'])
+        item['jami'] = _svod_rows_jami(item['korxonalar'])
+        oylar.append(item)
+
+    return {
+        'yil': yil,
+        'oy': oy,
+        'oylar': oylar,
+        'jami': _svod_rows_jami([k['jami'] for k in korxonalar]),
+        'korxonalar_soni': len(korxonalar),
+        'hisobotlar_soni': sum(len(item['korxonalar']) for item in oylar),
+    }
+
 # Column indices (0-based, after T/p=0 and Mahsulot=1)
 # yil_boshi_hajmi=2, yil_boshi_absolyut=3
 # qabul=4, sarflangan=5
@@ -147,10 +301,10 @@ def hisobot_pdf(hisobot):
     col_widths = [6 * mm, 42 * mm] + [14.55 * mm] * 16
 
     table = Table(data, colWidths=col_widths, repeatRows=3)
-    HDR_BG  = colors.HexColor('#1a5276')
-    SUB_BG  = colors.HexColor('#2471a3')
-    COL_BG  = colors.HexColor('#2e86c1')
-    HDR_TXT = colors.white
+    HDR_BG  = colors.HexColor('#b9c79b')
+    SUB_BG  = colors.HexColor('#cdd9b4')
+    COL_BG  = colors.HexColor('#e3e9d4')
+    HDR_TXT = colors.HexColor('#2f3a1a')
 
     style_cmds = [
         # backgrounds
@@ -160,7 +314,7 @@ def hisobot_pdf(hisobot):
         ('TEXTCOLOR',  (0, 0), (-1, 2), HDR_TXT),
         # alternating rows
         ('ROWBACKGROUNDS', (0, 3), (-1, -1),
-         [colors.white, colors.HexColor('#eaf4fb')]),
+         [colors.white, colors.HexColor('#f4f7ec')]),
         # fonts & align
         ('FONTSIZE', (0, 0), (-1, 2), 5.5),
         ('FONTSIZE', (0, 3), (-1, -1), 6.2),
@@ -189,6 +343,7 @@ def hisobot_pdf(hisobot):
 
     table.setStyle(TableStyle(style_cmds))
     elements.append(table)
+
     doc.build(elements)
     buffer.seek(0)
     return buffer.read()
@@ -203,12 +358,12 @@ def hisobot_excel(hisobot):
 
     TOTAL_COLS = 18  # A..R
 
-    HDR1_FILL = PatternFill('solid', fgColor='1A5276')
-    HDR2_FILL = PatternFill('solid', fgColor='2471A3')
-    HDR3_FILL = PatternFill('solid', fgColor='2E86C1')
-    ALT_FILL  = PatternFill('solid', fgColor='EAF4FB')
+    HDR1_FILL = PatternFill('solid', fgColor='B9C79B')
+    HDR2_FILL = PatternFill('solid', fgColor='CDD9B4')
+    HDR3_FILL = PatternFill('solid', fgColor='E3E9D4')
+    ALT_FILL  = PatternFill('solid', fgColor='F4F7EC')
 
-    HDR_FONT  = Font(bold=True, color='FFFFFF', size=9)
+    HDR_FONT  = Font(bold=True, color='2F3A1A', size=9)
     NORMAL    = Font(size=9)
 
     thin   = Side(style='thin',   color='AAAAAA')

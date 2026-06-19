@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.http import HttpResponse
 from django.db.models import Q
+from django.utils import timezone
 
 from .models import MahsulotTuri, OylikHisobot, HisobotQatori
 from .serializers import (
@@ -12,7 +13,7 @@ from .serializers import (
     OylikHisobotRoyxatSerializer,
     HisobotQatoriSerializer,
 )
-from .reports import hisobot_pdf, hisobot_excel
+from .reports import hisobot_pdf, hisobot_excel, oylik_svod_data, svodlar_data
 
 
 class MahsulotTuriViewSet(viewsets.ReadOnlyModelViewSet):
@@ -48,6 +49,54 @@ class OylikHisobotViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             return OylikHisobotRoyxatSerializer
         return OylikHisobotSerializer
+
+    @action(detail=True, methods=['get'], url_path='svod')
+    def svod(self, request, pk=None):
+        """Korxonaning shu yildagi oy-ma-oy svodi (umumiy ko'rinish)."""
+        hisobot = self.get_object()
+        return Response(oylik_svod_data(hisobot.korxona, hisobot.yil))
+
+    @action(detail=False, methods=['get'], url_path='svodlar')
+    def svodlar(self, request):
+        """Oylar kesimida, har oy ichida korxonalar bo'yicha svod."""
+        yil_raw = request.query_params.get('yil') or timezone.localdate().year
+        oy_raw = request.query_params.get('oy')
+        korxona_raw = request.query_params.get('korxona')
+
+        try:
+            yil = int(yil_raw)
+        except (TypeError, ValueError):
+            return Response(
+                {'detail': "Yil noto'g'ri kiritilgan."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        oy = None
+        if oy_raw:
+            try:
+                oy = int(oy_raw)
+            except (TypeError, ValueError):
+                return Response(
+                    {'detail': "Oy noto'g'ri kiritilgan."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if oy < 1 or oy > 12:
+                return Response(
+                    {'detail': "Oy 1 dan 12 gacha bo'lishi kerak."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        korxona_id = None
+        if korxona_raw:
+            try:
+                korxona_id = int(korxona_raw)
+            except (TypeError, ValueError):
+                return Response(
+                    {'detail': "Korxona noto'g'ri kiritilgan."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        return Response(svodlar_data(yil, korxona_id=korxona_id, oy=oy))
 
     @action(detail=True, methods=['get'], url_path='pdf')
     def pdf_yuklab_olish(self, request, pk=None):

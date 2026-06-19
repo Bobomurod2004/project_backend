@@ -76,6 +76,24 @@ class HisobotQatoriSerializer(serializers.ModelSerializer):
                 f'Eksport summasi ({eksp_sum}) realizatsiya summasidan '
                 f'({real_sum}) oshib ketdi.'
             )
+
+        # "x" belgilangan ustunlar — bu mahsulot uchun to'ldirilmaydi, qabul qilinmaydi
+        mahsulot = data.get('mahsulot') or (self.instance.mahsulot if self.instance else None)
+        if mahsulot is not None:
+            FLAG_FIELDS = {
+                'qabul_mavjud': ['qabul_hajmi'],
+                'sarflangan_mavjud': ['sarflangan_hajmi'],
+                'ishlab_chiqarish_mavjud': ['ishlab_hajmi', 'ishlab_absolyut'],
+                'realizatsiya_mavjud': ['realizatsiya_hajmi', 'realizatsiya_absolyut', 'realizatsiya_summasi'],
+                'eksport_mavjud': ['eksport_hajmi', 'eksport_absolyut', 'eksport_summasi'],
+            }
+            for flag, fields in FLAG_FIELDS.items():
+                if getattr(mahsulot, flag):
+                    continue
+                for f in fields:
+                    if f in data and data[f] is not None and data[f] != Decimal('0'):
+                        errors[f] = "Bu ustun ushbu mahsulot uchun to'ldirilmaydi."
+
         if errors:
             raise serializers.ValidationError(errors)
         return data
